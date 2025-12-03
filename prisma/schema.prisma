@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String     @id @default(cuid())
+  name                  String?
+  email                 String?    @unique
+  emailVerified         DateTime?
+  password              String?
+  image                 String?
+  parentId              String?    @unique
+  parent                User?      @relation("ChildToParent", fields: [parentId], references: [id])
+  children              User[]     @relation("ChildToParent")
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  accounts              Account[]
+  sessions              Session[]
+  subscription          Subscription?
+  properties            Property[]
+  reports               Report[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              String   @default("free") // free, pro
+  status            String   @default("active") // active, cancelled, expired
+  stripeCustomerId  String?  @unique
+  stripeSessionId   String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd  DateTime?
+  trialStartDate    DateTime @default(now())
+  trialEndDate      DateTime
+  isCancelled       Boolean  @default(false)
+  cancelledAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Property {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address      String
+  price        Float?
+  bedrooms     Int?
+  bathrooms    Int?
+  squareFeet   Int?
+  yearBuilt    Int?
+  propertyType String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  reports      Report[]
+
+  @@index([userId])
+}
+
+model PropertyQuestion {
+  id         String  @id @default(cuid())
+  question   String
+  type       String  // text, number, select, textarea
+  options    String? // JSON array for select options
+  required   Boolean @default(true)
+  order      Int
+  category   String  // property, market, financial, etc
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PropertyAnswer {
+  id          String   @id @default(cuid())
+  reportId    String
+  report      Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  questionId  String
+  answer      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reportId])
+}
+
+model Report {
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId      String?
+  property        Property?           @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  title           String
+  summary         String?             @db.Text
+  analysis        String?             @db.Text
+  googleDocUrl    String?
+  googleDocId     String?
+  status          String              @default("draft") // draft, completed, archived
+  answers         PropertyAnswer[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([propertyId])
+}
