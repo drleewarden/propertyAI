@@ -22,7 +22,6 @@ export default function MapPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
   );
-  const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
   const pricingSection = useScrollAnimation({ threshold: 0.1 });
   const { setRef: setFeatureRef, visibleItems: visibleFeatures } =

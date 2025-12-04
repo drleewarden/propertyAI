@@ -2,12 +2,16 @@
 
 import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
+import { useState } from "react";
 import {
   useScrollAnimation,
   useStaggeredAnimation,
 } from "@/hooks/useScrollAnimation";
 
 export default function HomePage() {
+  const [suburb, setSuburb] = useState("");
+  const [state, setState] = useState("QLD");
+  const [searchSubmitted, setSearchSubmitted] = useState(false);
   const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
   const pricingSection = useScrollAnimation({ threshold: 0.1 });
@@ -15,6 +19,15 @@ export default function HomePage() {
     useStaggeredAnimation(3);
   const { setRef: setPricingRef, visibleItems: visiblePricing } =
     useStaggeredAnimation(2);
+
+  const handleSuburbSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (suburb.trim()) {
+      setSearchSubmitted(true);
+      // You can add logic here to handle the search, e.g., redirect or filter
+      console.log("Searching for:", suburb, "in", state);
+    }
+  };
 
   const features = [
     {
@@ -80,6 +93,102 @@ export default function HomePage() {
             <div className="mt-20 relative h-64 md:h-80 flex items-center justify-center">
               <div className="absolute w-72 h-72 md:w-96 md:h-96 bg-linear-to-br from-[#1D7874]/20 to-[#679289]/20 rounded-full blur-3xl animate-float" />
               <div className="absolute w-64 h-64 md:w-80 md:h-80 bg-linear-to-br from-[#679289]/20 to-[#1D7874]/20 rounded-full blur-3xl animate-float delay-200" />
+            </div>
+          </div>
+        </section>
+
+        {/* Suburb Search Form Section */}
+        <section className="relative py-12 md:py-20 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="glass-card p-8 md:p-12 rounded-2xl">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 text-center">
+                Find Your Perfect Suburb
+              </h2>
+              <p className="text-gray-600 text-center mb-8">
+                Search for property data and investment insights in any suburb
+              </p>
+
+              <form onSubmit={handleSuburbSearch} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Suburb Input */}
+                  <div>
+                    <label htmlFor="suburb" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Suburb Name
+                    </label>
+                    <input
+                      type="text"
+                      id="suburb"
+                      value={suburb}
+                      onChange={(e) => setSuburb(e.target.value)}
+                      placeholder="e.g., Brisbane, South Bank"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1D7874] focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* State Dropdown */}
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-2">
+                      State
+                    </label>
+                    <select
+                      id="state"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1D7874] focus:border-transparent transition-all appearance-none cursor-pointer bg-white"
+                    >
+                      <option value="NSW">New South Wales (NSW)</option>
+                      <option value="QLD">Queensland (QLD)</option>
+                      <option value="VIC">Victoria (VIC)</option>
+                      <option value="WA">Western Australia (WA)</option>
+                      <option value="SA">South Australia (SA)</option>
+                      <option value="TAS">Tasmania (TAS)</option>
+                      <option value="ACT">Australian Capital Territory (ACT)</option>
+                      <option value="NT">Northern Territory (NT)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div>
+                  <button
+                    type="submit"
+                    className="w-full bg-[#1D7874] hover:bg-[#071E22] text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                  >
+                    Search Properties
+                  </button>
+                </div>
+
+                {/* Success Message */}
+                {searchSubmitted && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-800 font-semibold">
+                      ✓ Searching for properties in {suburb}, {state}
+                    </p>
+                    <p className="text-sm text-green-700 mt-1">
+                      Redirecting to results...
+                    </p>
+                  </div>
+                )}
+              </form>
+
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <p className="text-gray-600 text-sm text-center mb-4">Popular suburbs:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {["Brisbane", "South Bank", "Fortitude Valley", "Newstead", "Paddington"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setSuburb(s);
+                        setSearchSubmitted(false);
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-[#1D7874] hover:text-white text-gray-700 rounded-full text-sm font-medium transition-all duration-200"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
