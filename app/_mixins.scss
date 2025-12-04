@@ -1,0 +1,195 @@
+@use "variables" as *;
+
+// ============================================================================
+// GLASS EFFECT MIXIN
+// ============================================================================
+
+@mixin glass-effect {
+  background: $glass-bg;
+  backdrop-filter: blur($blur-amount);
+  -webkit-backdrop-filter: blur($blur-amount);
+  border: 1px solid $glass-border;
+  box-shadow: $glass-shadow;
+}
+
+// ============================================================================
+// RESPONSIVE MIXINS
+// ============================================================================
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == "sm" {
+    @media (min-width: $breakpoint-sm) {
+      @content;
+    }
+  } @else if $breakpoint == "md" {
+    @media (min-width: $breakpoint-md) {
+      @content;
+    }
+  } @else if $breakpoint == "lg" {
+    @media (min-width: $breakpoint-lg) {
+      @content;
+    }
+  } @else if $breakpoint == "xl" {
+    @media (min-width: $breakpoint-xl) {
+      @content;
+    }
+  } @else if $breakpoint == "2xl" {
+    @media (min-width: $breakpoint-2xl) {
+      @content;
+    }
+  }
+}
+
+// ============================================================================
+// FLEXBOX MIXINS
+// ============================================================================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================================================
+// TEXT MIXINS
+// ============================================================================
+
+@mixin gradient-text {
+  background: linear-gradient(135deg, $primary-color, $primary-light);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-multiline-truncate($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ============================================================================
+// TRANSITION MIXINS
+// ============================================================================
+
+@mixin smooth-transition($properties: all, $duration: $timing-base) {
+  transition: $properties $duration $easing-cubic-bezier;
+}
+
+@mixin bounce-transition($duration: 0.4s) {
+  transition: all $duration $easing-cubic-bounce;
+}
+
+// ============================================================================
+// POSITIONING MIXINS
+// ============================================================================
+
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin absolute-cover {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+@mixin fixed-cover {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+// ============================================================================
+// VISIBILITY MIXINS
+// ============================================================================
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// ============================================================================
+// DARK MODE MIXIN
+// ============================================================================
+
+@mixin dark-mode {
+  @media (prefers-color-scheme: dark) {
+    @content;
+  }
+}
+
+// ============================================================================
+// FONT MIXINS
+// ============================================================================
+
+@mixin font-smoothing {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ============================================================================
+// BACKGROUND IMAGE MIXINS
+// ============================================================================
+
+@mixin background-image($url) {
+  background-image: url($url);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+@mixin background-image-with-overlay($url, $opacity: 0.12) {
+  position: relative;
+  background-image: url($url);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+
+  &::before {
+    content: "";
+    @include fixed-cover;
+    background-color: rgba(255, 255, 255, $opacity);
+    z-index: -1;
+  }
+}
+
+// ============================================================================
+// ANIMATION DURATION MIXIN
+// ============================================================================
+
+@mixin animation-delay($delay) {
+  animation-delay: $delay;
+}

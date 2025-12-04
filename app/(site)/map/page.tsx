@@ -1,15 +1,62 @@
 "use client";
 
 import { Navigation } from "@/components/Navigation";
+import MapContainer from "@/components/MapContainer";
 import Link from "next/link";
-import { useScrollAnimation, useStaggeredAnimation } from "@/hooks/useScrollAnimation";
+import {
+  useScrollAnimation,
+  useStaggeredAnimation,
+} from "@/hooks/useScrollAnimation";
+import { useState } from "react";
 
-export default function HomePage() {
+interface Property {
+  id: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+  price?: number;
+  status?: string;
+}
+
+export default function MapPage() {
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
   const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
   const pricingSection = useScrollAnimation({ threshold: 0.1 });
-  const { setRef: setFeatureRef, visibleItems: visibleFeatures } = useStaggeredAnimation(3);
-  const { setRef: setPricingRef, visibleItems: visiblePricing } = useStaggeredAnimation(2);
+  const { setRef: setFeatureRef, visibleItems: visibleFeatures } =
+    useStaggeredAnimation(3);
+  const { setRef: setPricingRef, visibleItems: visiblePricing } =
+    useStaggeredAnimation(2);
+
+  // Sample properties for demo - Brisbane, Australia
+  const sampleProperties = [
+    {
+      id: "1",
+      latitude: -27.4698,
+      longitude: 153.0251,
+      address: "123 South Bank, Brisbane, QLD",
+      price: 850000,
+      status: "For Sale",
+    },
+    {
+      id: "2",
+      latitude: -27.4829,
+      longitude: 153.037,
+      address: "456 Fortitude Valley, Brisbane, QLD",
+      price: 1250000,
+      status: "For Sale",
+    },
+    {
+      id: "3",
+      latitude: -27.4674,
+      longitude: 153.0289,
+      address: "789 City Centre, Brisbane, QLD",
+      price: 1750000,
+      status: "Sold",
+    },
+  ];
 
   const features = [
     {
@@ -35,44 +82,44 @@ export default function HomePage() {
   return (
     <>
       <Navigation />
-      <main className="relative min-h-screen overflow-hidden">
+      <main className="relative min-h-screen overflow-hidden bg-cityscape-overlay">
         {/* Layered background */}
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-[#08B4D4]/10 via-transparent to-white" />
         <div className="fixed inset-0 -z-10 animated-gradient opacity-15" />
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-white/40 via-white/60 to-white" />
 
-        {/* Hero Section */}
-        <section
-          ref={heroSection.ref}
-          className={`relative py-12 md:py-32 px-4 transition-all duration-1000 ${
-            heroSection.isVisible ? "animate-fade-in-up" : "opacity-0 translate-y-8"
-          }`}
-        >
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-5xl md:text-7xl font-bold bg-linear-to-r from-[#1D7874] via-[#679289] to-[#1D7874] bg-clip-text text-transparent mb-6 leading-tight will-animate">
-              AI-Powered Property Analysis
-            </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Get comprehensive investment analysis and reports in minutes. Our AI analyzes
-              property data and creates professional Google Docs reports for your portfolio.
+        {/* Map Display Section */}
+        <section className="relative py-12 md:py-24 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 text-center">
+              Interactive Property Map
+            </h2>
+            <p className="text-gray-600 text-center max-w-2xl mx-auto mb-12">
+              Explore properties on an interactive map and get detailed
+              information at a glance
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/signup"
-                className="glass-btn text-[#1D7874] hover:text-[#071E22] font-semibold py-4 px-8 will-animate"
-              >
-                Get Started Free
-              </Link>
-              <button className="glass-btn text-gray-700 hover:text-gray-900 font-semibold py-4 px-8 will-animate">
-                <Link href="/about">Learn More</Link>
-              </button>
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg border border-gray-200">
+              <MapContainer
+                properties={sampleProperties}
+                initialCenter={[153.0289, -27.4698]}
+                initialZoom={13}
+                height="500px"
+                onPropertyClick={setSelectedProperty}
+              />
             </div>
-
-            {/* Floating shapes for visual interest */}
-            <div className="mt-20 relative h-64 md:h-80 flex items-center justify-center">
-              <div className="absolute w-72 h-72 md:w-96 md:h-96 bg-linear-to-br from-[#1D7874]/20 to-[#679289]/20 rounded-full blur-3xl animate-float" />
-              <div className="absolute w-64 h-64 md:w-80 md:h-80 bg-linear-to-br from-[#679289]/20 to-[#1D7874]/20 rounded-full blur-3xl animate-float delay-200" />
-            </div>
+            {selectedProperty && (
+              <div className="mt-6 p-6 bg-white rounded-lg border border-gray-200 shadow-md">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {selectedProperty.address}
+                </h3>
+                <p className="text-gray-600 mb-2">
+                  Price: ${selectedProperty.price?.toLocaleString()}
+                </p>
+                <p className="text-[#1D7874] font-semibold">
+                  {selectedProperty.status}
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -153,9 +200,9 @@ export default function HomePage() {
                   ref={(el) => setPricingRef(index, el)}
                   className={`will-animate transition-all duration-700 ${
                     visiblePricing[index]
-                      ? `animate-fade-in-${index === 0 ? "left" : "right"} delay-${
-                          index * 100
-                        }`
+                      ? `animate-fade-in-${
+                          index === 0 ? "left" : "right"
+                        } delay-${index * 100}`
                       : "opacity-0 translate-y-8"
                   }`}
                 >
@@ -193,7 +240,9 @@ export default function HomePage() {
                 className="inline-flex items-center gap-2 text-[#1D7874] hover:text-[#071E22] font-semibold transition-colors"
               >
                 View full pricing details
-                <span className="transition-transform group-hover:translate-x-1">→</span>
+                <span className="transition-transform group-hover:translate-x-1">
+                  →
+                </span>
               </Link>
             </div>
           </div>
