@@ -8,10 +8,17 @@ import {
   useStaggeredAnimation,
 } from "@/hooks/useScrollAnimation";
 
+interface SelectedSuburb {
+  id: string;
+  name: string;
+  state: string;
+}
+
 export default function HomePage() {
   const [suburb, setSuburb] = useState("");
   const [state, setState] = useState("QLD");
   const [searchSubmitted, setSearchSubmitted] = useState(false);
+  const [selectedSuburbs, setSelectedSuburbs] = useState<SelectedSuburb[]>([]);
   const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
   const pricingSection = useScrollAnimation({ threshold: 0.1 });
@@ -23,10 +30,35 @@ export default function HomePage() {
   const handleSuburbSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (suburb.trim()) {
-      setSearchSubmitted(true);
-      // You can add logic here to handle the search, e.g., redirect or filter
-      console.log("Searching for:", suburb, "in", state);
+      // Check if this suburb+state combo already exists
+      const exists = selectedSuburbs.some(
+        (s) => s.name.toLowerCase() === suburb.toLowerCase() && s.state === state
+      );
+
+      if (!exists) {
+        const newSuburb: SelectedSuburb = {
+          id: `${suburb}-${state}-${Date.now()}`,
+          name: suburb,
+          state: state,
+        };
+        setSelectedSuburbs([...selectedSuburbs, newSuburb]);
+        setSearchSubmitted(true);
+        // Reset the form
+        setSuburb("");
+        setTimeout(() => setSearchSubmitted(false), 3000);
+      } else {
+        setSearchSubmitted(false);
+      }
+      console.log("Added suburb:", suburb, "in", state);
     }
+  };
+
+  const removeSuburb = (id: string) => {
+    setSelectedSuburbs(selectedSuburbs.filter((s) => s.id !== id));
+  };
+
+  const clearAllSuburbs = () => {
+    setSelectedSuburbs([]);
   };
 
   const features = [
@@ -163,10 +195,10 @@ export default function HomePage() {
                 {searchSubmitted && (
                   <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-green-800 font-semibold">
-                      ✓ Searching for properties in {suburb}, {state}
+                      ✓ Suburb added to comparison list
                     </p>
                     <p className="text-sm text-green-700 mt-1">
-                      Redirecting to results...
+                      Add more suburbs to compare or analyze
                     </p>
                   </div>
                 )}
@@ -189,6 +221,52 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Selected Suburbs Pills */}
+              {selectedSuburbs.length > 0 && (
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Selected Suburbs ({selectedSuburbs.length})
+                    </h3>
+                    <button
+                      onClick={clearAllSuburbs}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {selectedSuburbs.map((s) => (
+                      <div
+                        key={s.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#1D7874] text-white rounded-full shadow-md hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-sm">{s.name}</span>
+                          <span className="text-xs opacity-90">{s.state}</span>
+                        </div>
+                        <button
+                          onClick={() => removeSuburb(s.id)}
+                          className="ml-2 text-white hover:text-red-200 font-bold text-lg leading-none transition-colors"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <button
+                      className="w-full bg-gradient-to-r from-[#1D7874] to-[#071E22] hover:from-[#071E22] hover:to-[#1D7874] text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                    >
+                      Analyze {selectedSuburbs.length} Suburb{selectedSuburbs.length !== 1 ? "s" : ""}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
