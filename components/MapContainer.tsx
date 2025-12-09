@@ -291,11 +291,11 @@ export default function MapContainer({
   }
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden shadow-lg border border-gray-200">
+    <div className="relative w-full h-full overflow-hidden">
       <div
         ref={mapContainer}
-        className="w-full"
-        style={{ height, minHeight: "400px" }}
+        className="w-full h-full"
+        style={{ height }}
       />
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50">

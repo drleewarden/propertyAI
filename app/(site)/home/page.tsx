@@ -2,7 +2,7 @@
 
 import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useScrollAnimation,
   useStaggeredAnimation,
@@ -19,6 +19,7 @@ export default function HomePage() {
   const [state, setState] = useState("QLD");
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [selectedSuburbs, setSelectedSuburbs] = useState<SelectedSuburb[]>([]);
+  const [backgroundOffset, setBackgroundOffset] = useState(0);
   const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
   const pricingSection = useScrollAnimation({ threshold: 0.1 });
@@ -27,12 +28,24 @@ export default function HomePage() {
   const { setRef: setPricingRef, visibleItems: visiblePricing } =
     useStaggeredAnimation(2);
 
+  // Handle scroll effect for background
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setBackgroundOffset(scrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleSuburbSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (suburb.trim()) {
       // Check if this suburb+state combo already exists
       const exists = selectedSuburbs.some(
-        (s) => s.name.toLowerCase() === suburb.toLowerCase() && s.state === state
+        (s) =>
+          s.name.toLowerCase() === suburb.toLowerCase() && s.state === state
       );
 
       if (!exists) {
@@ -86,10 +99,28 @@ export default function HomePage() {
     <>
       <Navigation />
       <main className="relative min-h-screen overflow-hidden bg-cityscape-overlay">
-        {/* Layered background */}
-        <div className="fixed inset-0 -z-10 bg-gradient-to-b from-[#08B4D4]/10 via-transparent to-white" />
-        <div className="fixed inset-0 -z-10 animated-gradient opacity-15" />
-        <div className="fixed inset-0 -z-10 bg-gradient-to-b from-white/40 via-white/60 to-white" />
+        {/* Layered background - Scrollable with parallax effect */}
+        <div
+          className="fixed inset-0 -z-10 bg-gradient-to-b from-[#08B4D4]/10 via-transparent to-white"
+          style={{
+            transform: `translateY(${Math.min(backgroundOffset * 0.5, 0)}px)`,
+            transition: 'transform 0.1s ease-out'
+          }}
+        />
+        <div
+          className="fixed inset-0 -z-10 animated-gradient opacity-15"
+          style={{
+            transform: `translateY(${Math.min(backgroundOffset * 0.5, 0)}px)`,
+            transition: 'transform 0.1s ease-out'
+          }}
+        />
+        <div
+          className="fixed inset-0 -z-10 bg-gradient-to-b from-white/40 via-white/60 to-white"
+          style={{
+            transform: `translateY(${Math.min(backgroundOffset * 0.3, 0)}px)`,
+            transition: 'transform 0.1s ease-out'
+          }}
+        />
 
         {/* Hero Section */}
         <section
@@ -120,17 +151,11 @@ export default function HomePage() {
                 <Link href="/about">Learn More</Link>
               </button>
             </div>
-
-            {/* Floating shapes for visual interest */}
-            <div className="mt-20 relative h-64 md:h-80 flex items-center justify-center">
-              <div className="absolute w-72 h-72 md:w-96 md:h-96 bg-linear-to-br from-[#1D7874]/20 to-[#679289]/20 rounded-full blur-3xl animate-float" />
-              <div className="absolute w-64 h-64 md:w-80 md:h-80 bg-linear-to-br from-[#679289]/20 to-[#1D7874]/20 rounded-full blur-3xl animate-float delay-200" />
-            </div>
           </div>
         </section>
 
         {/* Suburb Search Form Section */}
-        <section className="relative py-12 md:py-20 px-4">
+        <section className="relative  px-4">
           <div className="max-w-2xl mx-auto">
             <div className="glass-card p-8 md:p-12 rounded-2xl">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 text-center">
@@ -144,7 +169,10 @@ export default function HomePage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Suburb Input */}
                   <div>
-                    <label htmlFor="suburb" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label
+                      htmlFor="suburb"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
                       Suburb Name
                     </label>
                     <input
@@ -160,7 +188,10 @@ export default function HomePage() {
 
                   {/* State Dropdown */}
                   <div>
-                    <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label
+                      htmlFor="state"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
                       State
                     </label>
                     <select
@@ -175,7 +206,9 @@ export default function HomePage() {
                       <option value="WA">Western Australia (WA)</option>
                       <option value="SA">South Australia (SA)</option>
                       <option value="TAS">Tasmania (TAS)</option>
-                      <option value="ACT">Australian Capital Territory (ACT)</option>
+                      <option value="ACT">
+                        Australian Capital Territory (ACT)
+                      </option>
                       <option value="NT">Northern Territory (NT)</option>
                     </select>
                   </div>
@@ -205,9 +238,17 @@ export default function HomePage() {
               </form>
 
               <div className="mt-8 pt-8 border-t border-gray-200">
-                <p className="text-gray-600 text-sm text-center mb-4">Popular suburbs:</p>
+                <p className="text-gray-600 text-sm text-center mb-4">
+                  Popular suburbs:
+                </p>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {["Brisbane", "South Bank", "Fortitude Valley", "Newstead", "Paddington"].map((s) => (
+                  {[
+                    "Brisbane",
+                    "South Bank",
+                    "Fortitude Valley",
+                    "Newstead",
+                    "Paddington",
+                  ].map((s) => (
                     <button
                       key={s}
                       onClick={() => {
@@ -244,7 +285,9 @@ export default function HomePage() {
                         className="inline-flex items-center gap-2 px-4 py-2 bg-[#1D7874] text-white rounded-full shadow-md hover:shadow-lg transition-shadow"
                       >
                         <div className="flex flex-col">
-                          <span className="font-semibold text-sm">{s.name}</span>
+                          <span className="font-semibold text-sm">
+                            {s.name}
+                          </span>
                           <span className="text-xs opacity-90">{s.state}</span>
                         </div>
                         <button
@@ -259,10 +302,9 @@ export default function HomePage() {
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-gray-200">
-                    <button
-                      className="w-full bg-gradient-to-r from-[#1D7874] to-[#071E22] hover:from-[#071E22] hover:to-[#1D7874] text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
-                    >
-                      Analyze {selectedSuburbs.length} Suburb{selectedSuburbs.length !== 1 ? "s" : ""}
+                    <button className="w-full bg-gradient-to-r from-[#1D7874] to-[#071E22] hover:from-[#071E22] hover:to-[#1D7874] text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105">
+                      Analyze {selectedSuburbs.length} Suburb
+                      {selectedSuburbs.length !== 1 ? "s" : ""}
                     </button>
                   </div>
                 </div>
