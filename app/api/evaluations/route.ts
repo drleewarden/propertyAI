@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       select: {
         id: true,
         state: true,
+        city: true,
         suburb: true,
         houseMedianPrice: true,
         unitMedianPrice: true,

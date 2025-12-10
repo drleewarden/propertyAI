@@ -150,6 +150,7 @@ model Report {
 model PropertyEvaluation {
   id                String   @id @default(cuid())
   state             String   // NSW, QLD, VIC, WA, SA, TAS, ACT, NT
+  city              String   // City/Major area (e.g., Brisbane, Sydney, Melbourne)
   suburb            String   // Suburb name
   houseMedianPrice  String?  // e.g., "$1.08 M", "$3.9 M", "$850-900K"
   unitMedianPrice   String?  // e.g., "$750 K", "$700-750K"
@@ -166,8 +167,10 @@ model PropertyEvaluation {
   updatedAt         DateTime @updatedAt
 
   // Indexes for efficient querying
-  @@unique([state, suburb]) // Ensure no duplicate suburb entries per state
+  @@unique([state, city, suburb]) // Ensure no duplicate suburb entries per state+city
   @@index([state])
+  @@index([city])
   @@index([suburb])
-  @@index([state, suburb])
+  @@index([state, city])
+  @@index([state, city, suburb])
 }

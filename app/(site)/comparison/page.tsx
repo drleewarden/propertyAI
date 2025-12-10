@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 interface PropertyEvaluation {
   id: string;
   state: string;
+  city: string;
   suburb: string;
   houseMedianPrice: string | null;
   unitMedianPrice: string | null;
@@ -149,6 +150,7 @@ export default function ComparisonPage() {
                   <thead>
                     <tr className="bg-gradient-to-r from-[#1D7874] to-[#0f5753] text-white">
                       <th className="px-6 py-4 text-left font-bold">Suburb</th>
+                      <th className="px-6 py-4 text-left font-bold">City</th>
                       <th className="px-6 py-4 text-left font-bold">State</th>
                       <th className="px-6 py-4 text-left font-bold">House Median Price</th>
                       <th className="px-6 py-4 text-left font-bold">Unit Median Price</th>
@@ -168,6 +170,9 @@ export default function ComparisonPage() {
                       >
                         <td className="px-6 py-4 font-semibold text-gray-900">
                           {evaluation.suburb}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {evaluation.city}
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-[#1D7874] text-white">

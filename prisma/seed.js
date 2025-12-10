@@ -10,6 +10,7 @@ async function main() {
   const brisbaneData = [
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Tingalpa",
       houseMedianPrice: "$1.08 M",
       unitMedianPrice: "$750 K",
@@ -19,6 +20,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Ransome",
       houseMedianPrice: "$3.9 M",
       unitMedianPrice: null,
@@ -28,6 +30,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Redcliffe",
       houseMedianPrice: "$850–900 K",
       unitMedianPrice: "$700–750 K",
@@ -37,6 +40,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Caboolture",
       houseMedianPrice: "$767–790 K",
       unitMedianPrice: "$432–500 K",
@@ -46,6 +50,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Southport",
       houseMedianPrice: "$1.05 M",
       unitMedianPrice: "$690–705 K",
@@ -55,6 +60,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Strathpine",
       houseMedianPrice: "$830–840 K",
       unitMedianPrice: "$583–603 K",
@@ -64,6 +70,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Deception Bay",
       houseMedianPrice: "$750 K",
       unitMedianPrice: "$575.5 K",
@@ -73,6 +80,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Hemmant",
       houseMedianPrice: "$985 K–1.05 M",
       unitMedianPrice: "$305–659 K",
@@ -82,6 +90,7 @@ async function main() {
     },
     {
       state: "QLD",
+      city: "Brisbane",
       suburb: "Carina",
       houseMedianPrice: "$1.26–1.28 M",
       unitMedianPrice: "$898–902 K",
@@ -96,6 +105,7 @@ async function main() {
     await prisma.propertyEvaluation.create({
       data: {
         state: data.state,
+        city: data.city,
         suburb: data.suburb,
         houseMedianPrice: data.houseMedianPrice,
         unitMedianPrice: data.unitMedianPrice,

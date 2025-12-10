@@ -16,7 +16,10 @@ export function Navigation() {
   };
 
   return (
-    <nav className="glass fixed top-0 left-0 right-0 z-50 border-b border-gray-200/20">
+    <nav
+      id="nav"
+      className="glass fixed top-0 left-0 right-0 z-50 border-b border-gray-200/20"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center group">
@@ -44,6 +47,12 @@ export function Navigation() {
               className="text-gray-700 hover:text-[#1D7874] transition-colors duration-300 font-medium"
             >
               Pricing
+            </Link>
+            <Link
+              href="/comparison"
+              className="text-gray-700 hover:text-[#1D7874] transition-colors duration-300 font-medium"
+            >
+              Suburb comparison
             </Link>
 
             {session ? (
