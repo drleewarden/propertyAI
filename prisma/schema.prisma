@@ -145,3 +145,29 @@ model Report {
   @@index([userId])
   @@index([propertyId])
 }
+
+// Property Evaluation Data - organized by state and suburb
+model PropertyEvaluation {
+  id                String   @id @default(cuid())
+  state             String   // NSW, QLD, VIC, WA, SA, TAS, ACT, NT
+  suburb            String   // Suburb name
+  houseMedianPrice  String?  // e.g., "$1.08 M", "$3.9 M", "$850-900K"
+  unitMedianPrice   String?  // e.g., "$750 K", "$700-750K"
+  houseYield        String?  // e.g., "3.7%", "4.0-4.1%"
+  unitYield         String?  // Unit yield percentage
+  priceRange        String?  // For ranges: e.g., "$850-900K"
+
+  // Additional metadata
+  lastUpdated       DateTime @default(now())
+  dataSource        String?  // Source of the data (e.g., "Real Estate Database")
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Indexes for efficient querying
+  @@unique([state, suburb]) // Ensure no duplicate suburb entries per state
+  @@index([state])
+  @@index([suburb])
+  @@index([state, suburb])
+}
