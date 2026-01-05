@@ -27,7 +27,7 @@ export default function Login() {
       });
 
       if (result?.ok) {
-        router.push("/dashboard");
+        router.push("/profile");
       } else {
         setError("Invalid email or password");
       }
@@ -101,7 +101,7 @@ export default function Login() {
           </div>
 
           <button
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            onClick={() => signIn("google", { callbackUrl: "/profile" })}
             className="w-full mt-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition"
           >
             Google

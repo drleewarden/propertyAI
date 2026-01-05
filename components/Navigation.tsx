@@ -69,6 +69,18 @@ export function Navigation() {
                 >
                   Analyze
                 </Link>
+                <Link
+                  href="/chat"
+                  className="text-gray-700 hover:text-[#1D7874] transition-colors duration-300 font-medium"
+                >
+                  AI Chat
+                </Link>
+                <Link
+                  href="/profile"
+                  className="text-gray-700 hover:text-[#1D7874] transition-colors duration-300 font-medium"
+                >
+                  Profile
+                </Link>
                 <div className="flex items-center space-x-4 border-l border-gray-200/50 pl-8">
                   <span className="text-sm text-gray-600">
                     {session.user?.email}
@@ -151,6 +163,18 @@ export function Navigation() {
                   className="block text-gray-700 hover:text-[#1D7874] py-2 px-2 rounded-lg hover:bg-white/5 transition-all duration-300"
                 >
                   Analyze
+                </Link>
+                <Link
+                  href="/chat"
+                  className="block text-gray-700 hover:text-[#1D7874] py-2 px-2 rounded-lg hover:bg-white/5 transition-all duration-300"
+                >
+                  AI Chat
+                </Link>
+                <Link
+                  href="/profile"
+                  className="block text-gray-700 hover:text-[#1D7874] py-2 px-2 rounded-lg hover:bg-white/5 transition-all duration-300"
+                >
+                  Profile
                 </Link>
                 <button
                   onClick={handleLogout}
