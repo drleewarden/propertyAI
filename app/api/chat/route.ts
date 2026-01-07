@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     const payload = customPayload || {
       service: null,
       tone: "professional",
-      content: "",
-      action: "chat",
+      content: "no content",
+      action: "tone",
       useSystemPrompt: true,
       systemPrompt:
         "You are a helpful AI assistant for property investment questions.",
@@ -63,9 +63,18 @@ export async function POST(request: NextRequest) {
     // Handle response body - AWS may return data in a "body" property
     let responseData = data;
     if (data.body) {
-      // Check if body is a string (needs parsing) or already an object
-      responseData =
-        typeof data.body === "string" ? JSON.parse(data.body) : data.body;
+      // Check if body is a string
+      if (typeof data.body === "string") {
+        // Try to parse as JSON first
+        try {
+          responseData = JSON.parse(data.body);
+        } catch {
+          // If it's not JSON, it's plain text - wrap it in the expected format
+          responseData = { answer: data.body };
+        }
+      } else {
+        responseData = data.body;
+      }
     }
 
     console.log("Processed response:", JSON.stringify(responseData, null, 2));
