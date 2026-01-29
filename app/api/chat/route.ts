@@ -36,17 +36,14 @@ export async function POST(request: NextRequest) {
     console.log("Sending to AWS:", JSON.stringify(payload, null, 2));
 
     // Call AWS endpoint
-    const response = await fetch(
-      "https://tsemecn3y3.execute-api.ap-southeast-2.amazonaws.com/staging/ask-ai",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.AWS_API_KEY || "",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const response = await fetch(process.env.API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.AWS_API_KEY || "",
+      },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
