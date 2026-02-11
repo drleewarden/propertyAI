@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
-    "db:studio": "DATABASE_URL=postgresql://postgres:password@localhost:5432/property_investment_ai npx prisma studio",
+    "db:studio": "npx prisma studio",
     "prisma:generate": "prisma generate"
   },
   "keywords": [],
