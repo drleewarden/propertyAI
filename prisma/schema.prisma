@@ -8,169 +8,213 @@ datasource db {
 }
 
 model User {
-  id                    String     @id @default(cuid())
-  name                  String?
-  email                 String?    @unique
-  emailVerified         DateTime?
-  password              String?
-  image                 String?
-  parentId              String?    @unique
-  parent                User?      @relation("ChildToParent", fields: [parentId], references: [id])
-  children              User[]     @relation("ChildToParent")
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  accounts              Account[]
-  sessions              Session[]
-  subscription          Subscription?
-  properties            Property[]
-  reports               Report[]
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  bookings      bookings[]
+  child_details child_details[]
+  headcounts    headcounts[]
+  location_data location_data[]
+  meal_plans    meal_plans[]
+  meals         meals[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@id([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 model VerificationToken {
   identifier String
-  token      String   @unique
+  token      String
   expires    DateTime
 
-  @@unique([identifier, token])
+  @@id([identifier, token])
 }
 
-model Subscription {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan              String   @default("free") // free, pro
-  status            String   @default("active") // active, cancelled, expired
-  stripeCustomerId  String?  @unique
-  stripeSessionId   String?
-  currentPeriodStart DateTime?
-  currentPeriodEnd  DateTime?
-  trialStartDate    DateTime @default(now())
-  trialEndDate      DateTime
-  isCancelled       Boolean  @default(false)
-  cancelledAt       DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([userId])
+model bookings {
+  id            String         @id
+  name          String
+  date          DateTime
+  time          String
+  notes         String?
+  userId        String
+  childId       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  child_details child_details? @relation(fields: [childId], references: [id])
+  User          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Property {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address      String
-  price        Float?
-  bedrooms     Int?
-  bathrooms    Int?
-  squareFeet   Int?
-  yearBuilt    Int?
-  propertyType String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  reports      Report[]
+model child_details {
+  id                 String               @id
+  firstName          String
+  lastName           String?
+  dateOfBirth        DateTime
+  gender             String?
+  allergies          String?
+  medicalInfo        String?
+  notes              String?
+  userId             String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  bookedIn           Boolean              @default(false)
+  signedIn           Boolean              @default(false)
+  bookings           bookings[]
+  User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  child_events       child_events[]
+  child_meal_plans   child_meal_plans[]
+  headcount_children headcount_children[]
 
-  @@index([userId])
+  @@map("child-details")
 }
 
-model PropertyQuestion {
-  id         String  @id @default(cuid())
-  question   String
-  type       String  // text, number, select, textarea
-  options    String? // JSON array for select options
-  required   Boolean @default(true)
-  order      Int
-  category   String  // property, market, financial, etc
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model child_events {
+  id            String        @id
+  name          String
+  eventType     String
+  childId       String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  child_details child_details @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("child-events")
 }
 
-model PropertyAnswer {
-  id          String   @id @default(cuid())
-  reportId    String
-  report      Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  questionId  String
-  answer      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model child_meal_plans {
+  id            String        @id
+  childId       String
+  mealPlanId    String
+  preferences   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  child_details child_details @relation(fields: [childId], references: [id], onDelete: Cascade)
+  meal_plans    meal_plans    @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
 
-  @@index([reportId])
+  @@unique([childId, mealPlanId])
+  @@map("child-meal-plans")
 }
 
-model Report {
-  id              String              @id @default(cuid())
-  userId          String
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  propertyId      String?
-  property        Property?           @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  title           String
-  summary         String?             @db.Text
-  analysis        String?             @db.Text
-  googleDocUrl    String?
-  googleDocId     String?
-  status          String              @default("draft") // draft, completed, archived
-  answers         PropertyAnswer[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+model headcount_children {
+  id            String        @id
+  headcountId   String
+  childId       String
+  createdAt     DateTime      @default(now())
+  child_details child_details @relation(fields: [childId], references: [id], onDelete: Cascade)
+  headcounts    headcounts    @relation(fields: [headcountId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([propertyId])
+  @@unique([headcountId, childId])
+  @@map("headcount-children")
 }
 
-// Property Evaluation Data - organized by state and suburb
-model PropertyEvaluation {
-  id                String   @id @default(cuid())
-  state             String   // NSW, QLD, VIC, WA, SA, TAS, ACT, NT
-  city              String   // City/Major area (e.g., Brisbane, Sydney, Melbourne)
-  suburb            String   // Suburb name
-  houseMedianPrice  String?  // e.g., "$1.08 M", "$3.9 M", "$850-900K"
-  unitMedianPrice   String?  // e.g., "$750 K", "$700-750K"
-  houseYield        String?  // e.g., "3.7%", "4.0-4.1%"
-  unitYield         String?  // Unit yield percentage
-  priceRange        String?  // For ranges: e.g., "$850-900K"
+model headcounts {
+  id                 String               @id
+  userId             String
+  date               DateTime             @default(now())
+  notes              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  headcount_children headcount_children[]
+  User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  // Additional metadata
-  lastUpdated       DateTime @default(now())
-  dataSource        String?  // Source of the data (e.g., "Real Estate Database")
-  notes             String?  @db.Text
+model location_data {
+  id                   String   @id
+  userId               String
+  suburbName           String
+  state                String
+  medianHousePrice     Float
+  medianUnitPrice      Float
+  rentalPriceHouse     Float
+  rentalPriceUnit      Float
+  vacancyRate          Float
+  notes                String?
+  isFavorite           Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+  cityDistrict         String?
+  demographicLifestyle String?
+  schools              String?
+  User                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  @@unique([userId, suburbName, state])
+  @@map("location-data")
+}
 
-  // Indexes for efficient querying
-  @@unique([state, city, suburb]) // Ensure no duplicate suburb entries per state+city
-  @@index([state])
-  @@index([city])
-  @@index([suburb])
-  @@index([state, city])
-  @@index([state, city, suburb])
+model meal_plan_entries {
+  id         String     @id
+  mealPlanId String
+  mealId     String
+  dayOfWeek  Int
+  mealTime   String
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime
+  meals      meals      @relation(fields: [mealId], references: [id])
+  meal_plans meal_plans @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([mealPlanId, dayOfWeek, mealTime])
+  @@map("meal-plan-entries")
+}
+
+model meal_plans {
+  id                String              @id
+  userId            String
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  child_meal_plans  child_meal_plans[]
+  meal_plan_entries meal_plan_entries[]
+  User              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("meal-plans")
+}
+
+model meals {
+  id                String              @id
+  userId            String
+  name              String
+  description       String?
+  ingredients       String?
+  category          String
+  isTemplate        Boolean             @default(false)
+  allergyInfo       String?
+  prepTime          Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  meal_plan_entries meal_plan_entries[]
+  User              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

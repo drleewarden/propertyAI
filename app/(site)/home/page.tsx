@@ -3,10 +3,23 @@
 import { Navigation } from "@/components/Navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   useScrollAnimation,
   useStaggeredAnimation,
 } from "@/hooks/useScrollAnimation";
+import { ChatMessage } from "@/components/chat/ChatMessage";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { invokeBedrockAgent } from "@/lib/bedrock-api";
+
+interface Message {
+  id: string;
+  content: string;
+  variant: "bot" | "user";
+  timestamp: Date;
+  isNew?: boolean;
+}
 
 interface SelectedSuburb {
   id: string;
@@ -15,10 +28,8 @@ interface SelectedSuburb {
 }
 
 export default function HomePage() {
-  const [suburb, setSuburb] = useState("");
-  const [state, setState] = useState("QLD");
-  const [searchSubmitted, setSearchSubmitted] = useState(false);
-  const [selectedSuburbs, setSelectedSuburbs] = useState<SelectedSuburb[]>([]);
+  const router = useRouter();
+  const { data: session } = useSession();
   const [backgroundOffset, setBackgroundOffset] = useState(0);
   const heroSection = useScrollAnimation({ threshold: 0.2 });
   const featuresSection = useScrollAnimation({ threshold: 0.1 });
@@ -27,6 +38,21 @@ export default function HomePage() {
     useStaggeredAnimation(3);
   const { setRef: setPricingRef, visibleItems: visiblePricing } =
     useStaggeredAnimation(2);
+
+  // Chat state
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      content:
+        "Hello! I'm your Property Investment AI Assistant. I can help you search for suburbs, analyze property data, and provide investment insights. What suburb are you interested in?",
+      variant: "bot",
+      timestamp: new Date(),
+      isNew: false,
+    },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatSessionId, setChatSessionId] = useState<string>();
+  const [error, setError] = useState<string>();
 
   // Handle scroll effect for background
   useEffect(() => {
@@ -39,39 +65,81 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSuburbSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (suburb.trim()) {
-      // Check if this suburb+state combo already exists
-      const exists = selectedSuburbs.some(
-        (s) =>
-          s.name.toLowerCase() === suburb.toLowerCase() && s.state === state
+  const addBotMessage = (content: string) => {
+    const botMessage: Message = {
+      id: `bot-${Date.now()}`,
+      content,
+      variant: "bot",
+      timestamp: new Date(),
+      isNew: true,
+    };
+
+    setMessages((prev) => [...prev, botMessage]);
+
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === botMessage.id ? { ...msg, isNew: false } : msg
+        )
+      );
+    }, 100);
+
+    return botMessage;
+  };
+
+  const handleSend = async (message: string) => {
+    if (!message.trim() || isLoading) return;
+
+    // Add user message
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        content: message,
+        variant: "user",
+        timestamp: new Date(),
+      },
+    ]);
+
+    setIsLoading(true);
+    setError(undefined);
+
+    try {
+      // Get user context from session or use dev user that exists in database
+      const userContext = session?.user
+        ? {
+          userId: (session.user as any).id || "dev-user-mock-id",
+          email: session.user.email || "dev@example.com",
+          name: session.user.name || "Development User",
+        }
+        : {
+          userId: "dev-user-mock-id",
+          email: "dev@example.com",
+          name: "Development User",
+        };
+
+      const response = await invokeBedrockAgent(
+        message,
+        chatSessionId,
+        userContext
       );
 
-      if (!exists) {
-        const newSuburb: SelectedSuburb = {
-          id: `${suburb}-${state}-${Date.now()}`,
-          name: suburb,
-          state: state,
-        };
-        setSelectedSuburbs([...selectedSuburbs, newSuburb]);
-        setSearchSubmitted(true);
-        // Reset the form
-        setSuburb("");
-        setTimeout(() => setSearchSubmitted(false), 3000);
-      } else {
-        setSearchSubmitted(false);
+      if (response.sessionId && !chatSessionId) {
+        setChatSessionId(response.sessionId);
       }
-      console.log("Added suburb:", suburb, "in", state);
+
+      addBotMessage(response.message);
+    } catch (err) {
+      console.error("Error sending message:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to send message";
+      setError(errorMessage);
+      addBotMessage(
+        `Sorry, I encountered an error: ${errorMessage}. Please try again.`
+      );
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const removeSuburb = (id: string) => {
-    setSelectedSuburbs(selectedSuburbs.filter((s) => s.id !== id));
-  };
-
-  const clearAllSuburbs = () => {
-    setSelectedSuburbs([]);
   };
 
   const features = [
@@ -125,11 +193,10 @@ export default function HomePage() {
         {/* Hero Section */}
         <section
           ref={heroSection.ref}
-          className={`relative py-12 md:py-32 px-4 transition-all duration-1000 ${
-            heroSection.isVisible
-              ? "animate-fade-in-up"
-              : "opacity-0 translate-y-8"
-          }`}
+          className={`relative py-12 md:py-32 px-4 transition-all duration-1000 ${heroSection.isVisible
+            ? "animate-fade-in-up"
+            : "opacity-0 translate-y-8"
+            }`}
         >
           <div className="max-w-7xl mx-auto text-center">
             <h1 className="text-5xl md:text-7xl font-bold bg-linear-to-r from-[#1D7874] via-[#679289] to-[#1D7874] bg-clip-text text-transparent mb-6 leading-tight will-animate">
@@ -154,161 +221,64 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Suburb Search Form Section */}
-        <section className="relative  px-4">
-          <div className="max-w-2xl mx-auto">
-            <div className="glass-card p-8 md:p-12 rounded-2xl">
+        {/* AI Chat Section */}
+        <section className="relative px-4 pb-12">
+          <div className="max-w-3xl mx-auto">
+            <div className="glass-card p-6 md:p-8 rounded-2xl">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 text-center">
-                Find Your Perfect Suburb
+                Property AI Assistant
               </h2>
-              <p className="text-gray-600 text-center mb-8">
-                Search for property data and investment insights in any suburb
+              <p className="text-gray-600 text-center mb-6">
+                Ask me anything about suburbs, property data, and investment insights
               </p>
 
-              <form onSubmit={handleSuburbSearch} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* Suburb Input */}
-                  <div>
-                    <label
-                      htmlFor="suburb"
-                      className="block text-sm font-semibold text-gray-700 mb-2"
-                    >
-                      Suburb Name
-                    </label>
-                    <input
-                      type="text"
-                      id="suburb"
-                      value={suburb}
-                      onChange={(e) => setSuburb(e.target.value)}
-                      placeholder="e.g., Brisbane, South Bank"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1D7874] focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
-
-                  {/* State Dropdown */}
-                  <div>
-                    <label
-                      htmlFor="state"
-                      className="block text-sm font-semibold text-gray-700 mb-2"
-                    >
-                      State
-                    </label>
-                    <select
-                      id="state"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1D7874] focus:border-transparent transition-all appearance-none cursor-pointer bg-white"
-                    >
-                      <option value="NSW">New South Wales (NSW)</option>
-                      <option value="QLD">Queensland (QLD)</option>
-                      <option value="VIC">Victoria (VIC)</option>
-                      <option value="WA">Western Australia (WA)</option>
-                      <option value="SA">South Australia (SA)</option>
-                      <option value="TAS">Tasmania (TAS)</option>
-                      <option value="ACT">
-                        Australian Capital Territory (ACT)
-                      </option>
-                      <option value="NT">Northern Territory (NT)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <div>
-                  <button
-                    type="submit"
-                    className="w-full bg-[#1D7874] hover:bg-[#071E22] text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+              {/* Chat Messages */}
+              <div className="space-y-4 mb-6 max-h-[500px] overflow-y-auto">
+                {messages.map((msg) => (
+                  <ChatMessage
+                    key={msg.id}
+                    variant={msg.variant}
+                    textContent={msg.content}
                   >
-                    Search Properties
-                  </button>
-                </div>
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  </ChatMessage>
+                ))}
 
-                {/* Success Message */}
-                {searchSubmitted && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-green-800 font-semibold">
-                      ✓ Suburb added to comparison list
-                    </p>
-                    <p className="text-sm text-green-700 mt-1">
-                      Add more suburbs to compare or analyze
+                {isLoading && (
+                  <ChatMessage variant="bot">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 animate-bounce rounded-full bg-[#1D7874]"></div>
+                      <div
+                        className="h-2 w-2 animate-bounce rounded-full bg-[#1D7874]"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="h-2 w-2 animate-bounce rounded-full bg-[#1D7874]"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                  </ChatMessage>
+                )}
+
+                {error && (
+                  <div className="rounded-lg bg-red-50 p-4 text-sm text-red-800">
+                    <p className="font-medium">Error: {error}</p>
+                    <p className="mt-1 text-xs">
+                      Make sure NEXT_PUBLIC_API_URL is configured in your .env
+                      file
                     </p>
                   </div>
                 )}
-              </form>
-
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <p className="text-gray-600 text-sm text-center mb-4">
-                  Popular suburbs:
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Brisbane",
-                    "South Bank",
-                    "Fortitude Valley",
-                    "Newstead",
-                    "Paddington",
-                  ].map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => {
-                        setSuburb(s);
-                        setSearchSubmitted(false);
-                      }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-[#1D7874] hover:text-white text-gray-700 rounded-full text-sm font-medium transition-all duration-200"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Selected Suburbs Pills */}
-              {selectedSuburbs.length > 0 && (
-                <div className="mt-8 pt-8 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Selected Suburbs ({selectedSuburbs.length})
-                    </h3>
-                    <button
-                      onClick={clearAllSuburbs}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    {selectedSuburbs.map((s) => (
-                      <div
-                        key={s.id}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#1D7874] text-white rounded-full shadow-md hover:shadow-lg transition-shadow"
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-sm">
-                            {s.name}
-                          </span>
-                          <span className="text-xs opacity-90">{s.state}</span>
-                        </div>
-                        <button
-                          onClick={() => removeSuburb(s.id)}
-                          className="ml-2 text-white hover:text-red-200 font-bold text-lg leading-none transition-colors"
-                          title="Remove"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <button className="w-full bg-gradient-to-r from-[#1D7874] to-[#071E22] hover:from-[#071E22] hover:to-[#1D7874] text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105">
-                      Analyze {selectedSuburbs.length} Suburb
-                      {selectedSuburbs.length !== 1 ? "s" : ""}
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Chat Input */}
+              <div className="border-t border-gray-200 pt-4">
+                <ChatInput
+                  onSend={handleSend}
+                  placeholder="Ask about suburbs, property prices, rental yields..."
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -316,9 +286,8 @@ export default function HomePage() {
         {/* Features Section */}
         <section
           ref={featuresSection.ref}
-          className={`relative py-12 md:py-24 px-4 transition-all duration-1000 ${
-            featuresSection.isVisible ? "opacity-100" : "opacity-0"
-          }`}
+          className={`relative py-12 md:py-24 px-4 transition-all duration-1000 ${featuresSection.isVisible ? "opacity-100" : "opacity-0"
+            }`}
         >
           <div className="max-w-7xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 text-center">
@@ -333,11 +302,10 @@ export default function HomePage() {
                 <div
                   key={index}
                   ref={(el) => setFeatureRef(index, el)}
-                  className={`glass-card will-animate transition-all duration-700 ${
-                    visibleFeatures[index]
-                      ? `animate-fade-in-up delay-${index * 100}`
-                      : "opacity-0 translate-y-8"
-                  }`}
+                  className={`glass-card will-animate transition-all duration-700 ${visibleFeatures[index]
+                    ? `animate-fade-in-up delay-${index * 100}`
+                    : "opacity-0 translate-y-8"
+                    }`}
                 >
                   <div className="text-5xl mb-4 inline-block animate-bounce-gentle">
                     {feature.icon}
@@ -357,9 +325,8 @@ export default function HomePage() {
         {/* Pricing Preview */}
         <section
           ref={pricingSection.ref}
-          className={`relative py-12 md:py-24 px-4 transition-all duration-1000 ${
-            pricingSection.isVisible ? "opacity-100" : "opacity-0"
-          }`}
+          className={`relative py-12 md:py-24 px-4 transition-all duration-1000 ${pricingSection.isVisible ? "opacity-100" : "opacity-0"
+            }`}
         >
           <div className="max-w-7xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 text-center">
@@ -388,20 +355,17 @@ export default function HomePage() {
                 <div
                   key={index}
                   ref={(el) => setPricingRef(index, el)}
-                  className={`will-animate transition-all duration-700 ${
-                    visiblePricing[index]
-                      ? `animate-fade-in-${
-                          index === 0 ? "left" : "right"
-                        } delay-${index * 100}`
-                      : "opacity-0 translate-y-8"
-                  }`}
+                  className={`will-animate transition-all duration-700 ${visiblePricing[index]
+                    ? `animate-fade-in-${index === 0 ? "left" : "right"
+                    } delay-${index * 100}`
+                    : "opacity-0 translate-y-8"
+                    }`}
                 >
                   <div
-                    className={`p-8 md:p-10 rounded-2xl transition-all duration-300 ${
-                      plan.highlighted
-                        ? "glass-card border-2 border-[#1D7874] bg-linear-to-br from-[#1D7874]/10 to-[#679289]/10"
-                        : "glass-card"
-                    }`}
+                    className={`p-8 md:p-10 rounded-2xl transition-all duration-300 ${plan.highlighted
+                      ? "glass-card border-2 border-[#1D7874] bg-linear-to-br from-[#1D7874]/10 to-[#679289]/10"
+                      : "glass-card"
+                      }`}
                   >
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">
                       {plan.title}
