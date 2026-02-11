@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { brisbaneSuburbsGeoJSON } from "@/lib/brisbaneSuburbs";
+import { goldCoastSuburbsGeoJSON } from "@/lib/goldCoastSuburbs";
 
 interface MapProperty {
   id: string;
@@ -60,140 +61,162 @@ export default function MapContainer({
       });
 
       map.current.on("load", () => {
-        // Add suburb GeoJSON source
-        map.current!.addSource("suburbs", {
-          type: "geojson",
-          data: brisbaneSuburbsGeoJSON as any,
-        });
+        // Helper to add suburb layers for a region
+        const addSuburbLayers = (
+          sourceId: string,
+          data: any,
+          color: string
+        ) => {
+          map.current!.addSource(sourceId, {
+            type: "geojson",
+            data: data as any,
+          });
 
-        // Add suburb fill layer (polygons)
-        map.current!.addLayer({
-          id: "suburb-fill",
-          type: "fill",
-          source: "suburbs",
-          paint: {
-            "fill-color": [
-              "case",
-              ["has", "avgPrice"],
-              [
+          map.current!.addLayer({
+            id: `${sourceId}-fill`,
+            type: "fill",
+            source: sourceId,
+            paint: {
+              "fill-color": [
                 "case",
-                [">=", ["get", "avgPrice"], 1200000],
-                "#1D7874",
-                [">=", ["get", "avgPrice"], 1000000],
-                "#2B9E8F",
-                [">=", ["get", "avgPrice"], 850000],
-                "#4DAEA5",
-                [">=", ["get", "avgPrice"], 700000],
-                "#7FBDB5",
-                "#B8D6D0",
+                ["all", ["has", "avgPrice"], ["!=", ["get", "avgPrice"], null]],
+                [
+                  "case",
+                  [">=", ["get", "avgPrice"], 1200000],
+                  "#1D7874",
+                  [">=", ["get", "avgPrice"], 1000000],
+                  "#2B9E8F",
+                  [">=", ["get", "avgPrice"], 850000],
+                  "#4DAEA5",
+                  [">=", ["get", "avgPrice"], 700000],
+                  "#7FBDB5",
+                  "#B8D6D0",
+                ],
+                color,
               ],
-              "#7FBDB5",
-            ],
-            "fill-opacity": 0.3,
-          },
-        });
+              "fill-opacity": 0.3,
+            },
+          });
 
-        // Add suburb border layer
-        map.current!.addLayer({
-          id: "suburb-border",
-          type: "line",
-          source: "suburbs",
-          paint: {
-            "line-color": "#1D7874",
-            "line-width": 2,
-            "line-opacity": 0.8,
-          },
-        });
+          map.current!.addLayer({
+            id: `${sourceId}-border`,
+            type: "line",
+            source: sourceId,
+            paint: {
+              "line-color": color,
+              "line-width": 2,
+              "line-opacity": 0.8,
+            },
+          });
 
-        // Add suburb labels
-        map.current!.addLayer({
-          id: "suburb-label",
-          type: "symbol",
-          source: "suburbs",
-          layout: {
-            "text-field": ["get", "name"],
-            "text-size": 12,
-            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-            "text-offset": [0, 0],
-            "text-allow-overlap": false,
-          },
-          paint: {
-            "text-color": "#1D7874",
-            "text-halo-color": "#fff",
-            "text-halo-width": 1.5,
-          },
-        });
+          map.current!.addLayer({
+            id: `${sourceId}-label`,
+            type: "symbol",
+            source: sourceId,
+            layout: {
+              "text-field": ["get", "name"],
+              "text-size": 12,
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-offset": [0, 0],
+              "text-allow-overlap": false,
+            },
+            paint: {
+              "text-color": color,
+              "text-halo-color": "#fff",
+              "text-halo-width": 1.5,
+            },
+          });
 
-        // Hover effect - change cursor
-        map.current!.on("mousemove", "suburb-fill", () => {
-          map.current!.getCanvas().style.cursor = "pointer";
-        });
+          const fillLayerId = `${sourceId}-fill`;
 
-        map.current!.on("mouseleave", "suburb-fill", () => {
-          map.current!.getCanvas().style.cursor = "";
-        });
+          map.current!.on("mousemove", fillLayerId, () => {
+            map.current!.getCanvas().style.cursor = "pointer";
+          });
 
-        // Click to show suburb details popup
-        map.current!.on("click", "suburb-fill", (e) => {
-          if (!e.features || e.features.length === 0) return;
+          map.current!.on("mouseleave", fillLayerId, () => {
+            map.current!.getCanvas().style.cursor = "";
+          });
 
-          const feature = e.features[0];
-          const props = feature.properties;
+          map.current!.on("click", fillLayerId, (e) => {
+            if (!e.features || e.features.length === 0) return;
 
-          // Get the center of the clicked feature
-          const coordinates = e.lngLat;
+            const feature = e.features[0];
+            const props = feature.properties;
+            const coordinates = e.lngLat;
+            const hasData = props?.avgPrice && props.avgPrice !== "null";
 
-          // Create popup content
-          const popupHTML = `
-            <div class="p-4 max-w-sm">
-              <h3 class="font-bold text-lg text-gray-900 mb-3">${props?.name || "Unknown"}</h3>
+            let popupHTML: string;
 
-              <div class="grid grid-cols-2 gap-4 mb-3 text-sm">
-                <div class="bg-gray-50 p-2 rounded">
-                  <p class="text-gray-600 text-xs">Avg Price</p>
-                  <p class="font-semibold text-gray-900">$${(props?.avgPrice / 1000).toFixed(0)}K</p>
+            if (hasData) {
+              popupHTML = `
+                <div class="p-4 max-w-sm">
+                  <h3 class="font-bold text-lg text-gray-900 mb-3">${props?.name || "Unknown"}</h3>
+                  <div class="grid grid-cols-2 gap-4 mb-3 text-sm">
+                    <div class="bg-gray-50 p-2 rounded">
+                      <p class="text-gray-600 text-xs">Avg Price</p>
+                      <p class="font-semibold text-gray-900">$${(props?.avgPrice / 1000).toFixed(0)}K</p>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded">
+                      <p class="text-gray-600 text-xs">Median Rent</p>
+                      <p class="font-semibold text-gray-900">$${props?.medianRent}/wk</p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4 mb-3 text-sm">
+                    <div class="bg-gray-50 p-2 rounded">
+                      <p class="text-gray-600 text-xs">Properties</p>
+                      <p class="font-semibold text-gray-900">${props?.properties}</p>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded">
+                      <p class="text-gray-600 text-xs">Growth Rate</p>
+                      <p class="font-semibold text-[#1D7874]">${props?.growthRate}% p.a</p>
+                    </div>
+                  </div>
+                  <div class="mb-3 text-sm">
+                    <p class="text-gray-600 text-xs">Postcode</p>
+                    <p class="font-semibold text-gray-900">${props?.postcode}</p>
+                  </div>
+                  ${props?.description && props.description !== "null" ? `
+                  <div class="bg-blue-50 p-2 rounded mb-3 text-sm">
+                    <p class="text-gray-700">${props.description}</p>
+                  </div>` : ""}
+                  <a href="#" class="inline-block bg-[#1D7874] text-white px-4 py-2 rounded text-sm font-semibold hover:bg-[#071E22] transition-colors">
+                    View Properties
+                  </a>
                 </div>
-                <div class="bg-gray-50 p-2 rounded">
-                  <p class="text-gray-600 text-xs">Median Rent</p>
-                  <p class="font-semibold text-gray-900">$${props?.medianRent}/wk</p>
+              `;
+            } else {
+              popupHTML = `
+                <div class="p-4 max-w-sm">
+                  <h3 class="font-bold text-lg text-gray-900 mb-2">${props?.name || "Unknown"}</h3>
+                  ${props?.postcode && props.postcode !== "null" ? `
+                  <div class="mb-3 text-sm">
+                    <p class="text-gray-600 text-xs">Postcode</p>
+                    <p class="font-semibold text-gray-900">${props.postcode}</p>
+                  </div>` : ""}
+                  <p class="text-sm text-gray-500 mb-3">Property data coming soon for this suburb.</p>
+                  <a href="#" class="inline-block bg-[#1D7874] text-white px-4 py-2 rounded text-sm font-semibold hover:bg-[#071E22] transition-colors">
+                    View Suburb
+                  </a>
                 </div>
-              </div>
+              `;
+            }
 
-              <div class="grid grid-cols-2 gap-4 mb-3 text-sm">
-                <div class="bg-gray-50 p-2 rounded">
-                  <p class="text-gray-600 text-xs">Properties</p>
-                  <p class="font-semibold text-gray-900">${props?.properties}</p>
-                </div>
-                <div class="bg-gray-50 p-2 rounded">
-                  <p class="text-gray-600 text-xs">Growth Rate</p>
-                  <p class="font-semibold text-[#1D7874]">${props?.growthRate}% p.a</p>
-                </div>
-              </div>
+            new mapboxgl.Popup({
+              closeButton: true,
+              closeOnClick: false,
+              maxWidth: "400px",
+            })
+              .setLngLat(coordinates)
+              .setHTML(popupHTML)
+              .addTo(map.current!);
+          });
+        };
 
-              <div class="mb-3 text-sm">
-                <p class="text-gray-600 text-xs">Postcode</p>
-                <p class="font-semibold text-gray-900">${props?.postcode}</p>
-              </div>
+        // Add Brisbane suburbs
+        addSuburbLayers("brisbane-suburbs", brisbaneSuburbsGeoJSON, "#1D7874");
 
-              <div class="bg-blue-50 p-2 rounded mb-3 text-sm">
-                <p class="text-gray-700">${props?.description || ""}</p>
-              </div>
-
-              <a href="#" class="inline-block bg-[#1D7874] text-white px-4 py-2 rounded text-sm font-semibold hover:bg-[#071E22] transition-colors">
-                View Properties
-              </a>
-            </div>
-          `;
-
-          new mapboxgl.Popup({
-            closeButton: true,
-            closeOnClick: false,
-            maxWidth: "400px",
-          })
-            .setLngLat(coordinates)
-            .setHTML(popupHTML)
-            .addTo(map.current!);
-        });
+        // Add Gold Coast suburbs
+        addSuburbLayers("goldcoast-suburbs", goldCoastSuburbsGeoJSON, "#2B6CB0");
 
         setMapLoaded(true);
       });
